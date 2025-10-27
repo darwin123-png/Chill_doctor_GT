@@ -1,0 +1,359 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CHILL DOCTOR ( GT ) — FMGE Grand Test</title>
+  <style>
+    /* Minimal white theme */
+    :root{--bg:#ffffff;--card:#fbfbfb;--text:#111;--muted:#666;--accent:#0b63d6}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text)}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    h1{font-size:20px;margin:0}
+    .card{background:var(--card);border:1px solid #eee;padding:16px;border-radius:10px;box-shadow:0 2px 6px rgba(20,20,20,0.03)}
+    .meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .meta div{font-size:13px;color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    button{background:transparent;border:1px solid #ddd;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.primary{background:var(--accent);color:#fff;border:0}
+    .area{margin-top:16px}
+    .question-box{margin-top:18px;padding:18px;border-radius:10px;border:1px solid #eee}
+    .q-head{display:flex;justify-content:space-between;align-items:center}
+    .options{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .opt{padding:10px;border-radius:8px;border:1px solid #e6e6e6;cursor:pointer}
+    .opt.selected{border-color:var(--accent);background:rgba(11,99,214,0.06)}
+    .small{font-size:13px;color:var(--muted)}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+    .hide{display:none}
+    .upload-area{display:flex;gap:8px;align-items:center}
+    input[type=file]{display:none}
+    .badge{background:#f4f8ff;padding:6px 8px;border-radius:999px;border:1px solid #e6f0ff;color:var(--accent);font-weight:600}
+    .result{margin-top:16px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border:1px solid #eee;text-align:left}
+    .explain{margin-top:12px;padding:12px;border-radius:8px;background:#fafafa;border:1px dashed #eee}
+    .ctr{display:flex;gap:8px}
+    @media(max-width:640px){.wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>CHILL DOCTOR ( GT )</h1>
+        <div class="small">Interactive FMGE-style integrated grand test — web HTML export</div>
+      </div>
+      <div style="margin-left:auto" class="badge">30s / Q · 6 sets × 50</div>
+    </header><section class="card area" id="setup">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <div class="small">Answer display: After finishing the set</div>
+      <div class="small">Scoring: +1 correct, 0 wrong</div>
+    </div>
+    <div class="upload-area">
+      <label for="fileInput" class="small" style="cursor:pointer">Upload questions (JSON or CSV)</label>
+      <input id="fileInput" type="file" accept="application/json,text/csv" />
+      <button id="pasteBtn">Paste JSON</button>
+      <button id="startBtn" class="primary">Start Quiz</button>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+    <strong>Question format (JSON):</strong> an array of question objects. Required fields:
+    <code>[{&quot;id&quot;:1,&quot;set&quot;:1,&quot;subject&quot;:&quot;Medicine&quot;,&quot;type&quot;:&quot;clinical&quot;,&quot;stem&quot;:&quot;...",&quot;options&quot;:["A","B","C","D"],&quot;answer":1,&quot;explanation":"..."}]</code>
+    <div style="margin-top:6px">Or upload CSV with columns: id,set,subject,type,stem,opt1,opt2,opt3,opt4,answer,explanation</div>
+  </div>
+</section>
+
+<section class="card area hide" id="quizArea">
+  <div class="q-head">
+    <div>
+      <div class="small" id="qInfo">Set 1 · Q 1 of 50</div>
+      <div style="font-weight:600;font-size:16px" id="qStem">Loading...</div>
+    </div>
+    <div style="text-align:right">
+      <div class="small">Timer</div>
+      <div style="font-weight:700;font-size:18px" id="timer">00:30</div>
+    </div>
+  </div>
+
+  <div class="question-box">
+    <div class="options" id="options"></div>
+    <div class="footer">
+      <div class="small">Selected: <span id="selectedText">-</span></div>
+      <div class="ctr">
+        <button id="prevBtn">Prev</button>
+        <button id="nextBtn" class="primary">Next</button>
+        <button id="finishSetBtn">Finish Set</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result hide" id="setResult">
+    <h3>Set Summary</h3>
+    <div class="small">Score: <span id="setScore">0</span> / <span id="setTotal">0</span></div>
+    <div id="breakdown" style="margin-top:8px"></div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="continueBtn" class="primary">Continue to next set</button>
+      <button id="downloadBtn">Download set results</button>
+    </div>
+    <div style="margin-top:12px">
+      <strong>Answers & Explanations</strong>
+      <div id="answersList"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card area" id="controls">
+  <h3>Quick actions</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="resetBtn">Reset Quiz</button>
+    <button id="loadSample">Load Sample Questions</button>
+  </div>
+</section>
+
+<footer style="margin-top:18px;font-size:13px;color:var(--muted)">Open the HTML file in any modern browser. You can host on GitHub Pages or Netlify.</footer>
+
+  </div><script>
+// Quiz engine
+const STATE = {
+  questions: [],
+  sets: 6,
+  perSet: 50,
+  currentSet: 1,
+  currentIndex: 0, // index within current set
+  timer: null,
+  timeLeft: 30,
+  userAnswers: {}, // key: question id -> selectedIndex
+  results: [],
+}
+
+const el = id => document.getElementById(id)
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/)
+  const header = lines.shift().split(',').map(h=>h.trim())
+  const arr = lines.map((ln,i)=>{
+    const parts = ln.split(',')
+    const obj = {}
+    for(let j=0;j<header.length;j++){ obj[header[j]] = (parts[j]||'').trim() }
+    // normalize
+    return {
+      id: obj.id || (i+1),
+      set: Number(obj.set)||1,
+      subject: obj.subject||'General',
+      type: obj.type||'clinical',
+      stem: obj.stem||obj.question||'',
+      options: [obj.opt1||'',obj.opt2||'',obj.opt3||'',obj.opt4||''],
+      answer: Number(obj.answer)||1,
+      explanation: obj.explanation||''
+    }
+  })
+  return arr
+}
+
+function resetState(){
+  STATE.currentSet = 1
+  STATE.currentIndex = 0
+  STATE.userAnswers = {}
+  STATE.results = []
+  hide('setResult')
+}
+
+function hide(id){el(id).classList.add('hide')}
+function show(id){el(id).classList.remove('hide')}
+
+function startQuiz(){
+  if(STATE.questions.length===0){alert('No questions loaded. Use Load Sample or upload a JSON/CSV.');return}
+  resetState()
+  show('quizArea')
+  hide('setup')
+  renderQuestion()
+  startTimer()
+}
+
+function getSetQuestions(setNum){
+  const q = STATE.questions.filter(x=>Number(x.set||1)===setNum)
+  return q.slice(0, STATE.perSet)
+}
+
+function renderQuestion(){
+  const setQs = getSetQuestions(STATE.currentSet)
+  const total = setQs.length
+  if(STATE.currentIndex>=total){
+    // end of set
+    finishSet()
+    return
+  }
+  const q = setQs[STATE.currentIndex]
+  el('qInfo').textContent = `Set ${STATE.currentSet} · Q ${STATE.currentIndex+1} of ${total}`
+  el('qStem').textContent = q.stem
+  el('options').innerHTML = ''
+  q.options.forEach((opt,i)=>{
+    const d = document.createElement('div')
+    d.className='opt'
+    d.dataset.index = i
+    d.tabIndex = 0
+    d.textContent = String.fromCharCode(65+i)+'. '+opt
+    d.addEventListener('click',()=> selectOption(q.id,i))
+    el('options').appendChild(d)
+  })
+  el('selectedText').textContent = STATE.userAnswers[q.id]!==undefined ? String.fromCharCode(65+STATE.userAnswers[q.id]) : '-'
+}
+
+function selectOption(qid, idx){
+  // mark selected visually
+  Array.from(el('options').children).forEach(ch=>ch.classList.remove('selected'))
+  const the = Array.from(el('options').children).find(ch=>Number(ch.dataset.index)===idx)
+  if(the) the.classList.add('selected')
+  el('selectedText').textContent = String.fromCharCode(65+idx)
+  STATE.userAnswers[qid] = idx
+}
+
+function nextQuestion(){
+  // save current, move on
+  const setQs = getSetQuestions(STATE.currentSet)
+  if(STATE.currentIndex < setQs.length-1){
+    STATE.currentIndex++
+    renderQuestion()
+    resetTimer()
+  } else {
+    finishSet()
+  }
+}
+
+function prevQuestion(){
+  if(STATE.currentIndex>0){ STATE.currentIndex--; renderQuestion(); resetTimer(); }
+}
+
+function finishSet(){
+  stopTimer()
+  // compute score for set
+  const setQs = getSetQuestions(STATE.currentSet)
+  let score=0
+  const answersHtml = []
+  setQs.forEach((q,idx)=>{
+    const user = STATE.userAnswers[q.id]
+    const correctIndex = Number(q.answer)-1
+    if(user!==undefined && user===correctIndex) score++
+    const row = `<div style="margin-top:8px;padding:8px;border-radius:8px;border:1px solid #f1f1f1"><strong>Q ${idx+1}:</strong> ${q.stem}<br><em>Answer:</em> ${String.fromCharCode(65+correctIndex)}. ${q.options[correctIndex]||''}<div class=\"explain\">${q.explanation||'No explanation provided.'}</div></div>`
+    answersHtml.push(row)
+  })
+  el('setScore').textContent = score
+  el('setTotal').textContent = setQs.length
+  el('answersList').innerHTML = answersHtml.join('\n')
+  // breakdown by subject
+  const bySub = {}
+  setQs.forEach((q,idx)=>{
+    const sub = q.subject||'General'
+    if(!bySub[sub]) bySub[sub] = {total:0,correct:0}
+    bySub[sub].total++
+    const user = STATE.userAnswers[q.id]
+    const correctIndex = Number(q.answer)-1
+    if(user!==undefined && user===correctIndex) bySub[sub].correct++
+  })
+  const breakdownHtml = Object.keys(bySub).map(s=>`<div>${s}: ${bySub[s].correct}/${bySub[s].total}</div>`).join('')
+  el('breakdown').innerHTML = breakdownHtml
+
+  show('setResult')
+}
+
+function continueNextSet(){
+  if(STATE.currentSet < STATE.sets){
+    STATE.currentSet++
+    STATE.currentIndex = 0
+    hide('setResult')
+    renderQuestion()
+    resetTimer()
+    show('quizArea')
+  } else {
+    alert('All sets completed. You can reset quiz to try again.')
+  }
+}
+
+function downloadResults(){
+  const res = {userAnswers:STATE.userAnswers, timestamp: new Date().toISOString()}
+  const blob = new Blob([JSON.stringify(res,0,2)],{type:'application/json'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `CHILL_DOCTOR_results_set${STATE.currentSet}.json`; a.click()
+}
+
+// Timer
+function startTimer(){
+  STATE.timeLeft = 30
+  el('timer').textContent = formatTime(STATE.timeLeft)
+  STATE.timer = setInterval(()=>{
+    STATE.timeLeft--
+    el('timer').textContent = formatTime(STATE.timeLeft)
+    if(STATE.timeLeft<=0){
+      // auto move to next
+      nextQuestion()
+    }
+  },1000)
+}
+function resetTimer(){ stopTimer(); startTimer() }
+function stopTimer(){ if(STATE.timer) clearInterval(STATE.timer); STATE.timer = null }
+function formatTime(s){ const mm = Math.floor(s/60).toString().padStart(2,'0'); const ss = (s%60).toString().padStart(2,'0'); return `${mm}:${ss}` }
+
+// File load handlers
+el('fileInput').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return
+  const txt = await f.text()
+  try{
+    if(f.name.toLowerCase().endsWith('.json')){
+      const data = JSON.parse(txt)
+      STATE.questions = data.map(x=>normalizeQ(x))
+    } else {
+      STATE.questions = parseCSV(txt).map(normalizeQ)
+    }
+    alert('Questions loaded: '+STATE.questions.length)
+  }catch(err){alert('Failed to parse file: '+err.message)}
+})
+
+el('pasteBtn').addEventListener('click',()=>{
+  const txt = prompt('Paste questions array in JSON format')
+  if(!txt) return
+  try{ const data = JSON.parse(txt); STATE.questions = data.map(normalizeQ); alert('Questions loaded: '+STATE.questions.length) }
+  catch(e){alert('Invalid JSON: '+e.message)}
+})
+
+el('startBtn').addEventListener('click',()=> startQuiz())
+el('prevBtn').addEventListener('click',()=> prevQuestion())
+el('nextBtn').addEventListener('click',()=> nextQuestion())
+el('finishSetBtn').addEventListener('click',()=> finishSet())
+el('continueBtn').addEventListener('click',()=> continueNextSet())
+el('downloadBtn').addEventListener('click',()=> downloadResults())
+el('resetBtn').addEventListener('click',()=>{ if(confirm('Reset quiz and clear loaded questions?')){STATE.questions=[]; hide('quizArea'); show('setup'); alert('Reset complete.') } })
+el('loadSample').addEventListener('click',()=> loadSample())
+
+function normalizeQ(x){
+  return {
+    id: x.id || (Math.random().toString(36).slice(2,9)),
+    set: Number(x.set||1),
+    subject: x.subject||'General',
+    type: x.type||'clinical',
+    stem: x.stem||x.question||'',
+    options: x.options && x.options.length? x.options : [x.opt1||'',x.opt2||'',x.opt3||'',x.opt4||''],
+    answer: x.answer || 1,
+    explanation: x.explanation||''
+  }
+}
+
+function loadSample(){
+  const sample = [
+    {id:1,set:1,subject:'Medicine',type:'clinical',stem:'A 55-year-old man with chest pain shows ST elevation in V1-V4. What is the most likely artery involved?',options:['Right coronary artery','Left circumflex artery','Left anterior descending artery','Posterior descending artery'],answer:3,explanation:'Anteroseptal MI → LAD.'},
+    {id:2,set:1,subject:'Pharmacology',type:'clinical',stem:'Which drug is contraindicated in pregnancy for treating hypertension?',options:['Methyldopa','Labetalol','ACE inhibitors','Hydralazine'],answer:3,explanation:'ACE inhibitors are teratogenic.'},
+    {id:3,set:1,subject:'Obstetrics',type:'clinical',stem:'A pregnant woman at 34 weeks presents with severe abdominal pain and fetal heart abnormalities. Suspect?',options:['Placenta previa','Placental abruption','UTI','Ectopic pregnancy'],answer:2,explanation:'Abruption causes pain, fetal distress.'},
+    {id:4,set:1,subject:'Surgery',type:'clinical',stem:'A 45-year-old with painless progressive jaundice and weight loss — likely diagnosis?',options:['Acute hepatitis','Chronic liver disease','Pancreatic head carcinoma','Hemolytic anemia'],answer:3,explanation:'Painless obstructive jaundice suggests pancreatic head CA.'},
+    {id:5,set:1,subject:'Microbiology',type:'one-liner',stem:'Which organism shows encapsulated budding yeast in India ink?',options:['Cryptococcus neoformans','Candida albicans','Aspergillus fumigatus','Histoplasma capsulatum'],answer:1,explanation:'Cryptococcus is encapsulated.'}
+  ]
+  STATE.questions = sample.map(normalizeQ)
+  alert('Sample loaded: '+STATE.questions.length+' questions. Start the quiz to preview interface.')
+}
+
+</script></body>
+</html>
