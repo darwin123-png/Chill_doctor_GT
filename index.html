@@ -1,295 +1,368 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CHILL DOCTOR (GT) - Grand Test</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CHILL DOCTOR (GT) — Grand Test</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #ffffff;
-      color: #000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .container {
-      width: 90%;
-      max-width: 600px;
-      background: #fff;
-      padding: 25px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      border-radius: 15px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 20px;
-      font-size: 1.8em;
-    }
-    button {
-      background: #000;
-      color: #fff;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      margin-top: 20px;
-    }
-    button:hover {
-      background: #333;
-    }
-    .option {
-      background: #f5f5f5;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 5px 0;
-      cursor: pointer;
-      border: 1px solid transparent;
-    }
-    .option.correct {
-      background-color: #c8f7c5;
-      border-color: #2ecc71;
-    }
-    .option.wrong {
-      background-color: #f7c5c5;
-      border-color: #e74c3c;
-    }
-    #result {
-      text-align: center;
-    }
+    :root{--card-bg:#fff;--muted:#666}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#f6f7f9;color:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+    .wrap{width:100%;max-width:980px}
+    .card{background:var(--card-bg);border-radius:14px;padding:22px;box-shadow:0 12px 30px rgba(16,24,40,0.06)}
+    h1,h2{margin:0 0 12px;text-align:center}
+    .center{text-align:center}
+    .muted{color:var(--muted);font-size:14px}
+    button{background:#111;color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer}
+    button.ghost{background:#fff;color:#111;border:1px solid #eee}
+    .flex{display:flex;gap:12px;align-items:center}
+    .options{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .option{padding:12px;border-radius:10px;border:1px solid #eee;background:#fbfbfb;cursor:pointer}
+    .option.selected{outline:3px solid rgba(0,0,0,0.08)}
+    .option.correct{background:#e7f8ee;border-color:#8ad39f}
+    .option.wrong{background:#fdecec;border-color:#f39c9c}
+    .controls{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .small{font-size:13px;color:var(--muted)}
+    .sets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .set-btn{padding:8px 12px;border-radius:8px;border:1px solid #eee;background:#fff;cursor:pointer}
+    .set-btn.locked{opacity:0.45;cursor:not-allowed}
+    .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .explain{background:#f8f9fb;border-radius:10px;padding:12px;margin-top:12px;font-size:14px}
+    .footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+    .hidden{display:none}
+    @media(max-width:640px){.card{padding:16px}}
+    /* explanation modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:60}
+    .modal{background:#fff;border-radius:12px;padding:18px;max-width:820px;width:96%;max-height:86vh;overflow:auto}
+    .modal h3{margin-top:0}
+    .ex-block{border-left:4px solid #eee;padding:10px;background:#fff;margin:10px 0;border-radius:6px}
   </style>
 </head>
 <body>
-  <div class="container" id="welcome">
-    <h1>WELCOME TO CHILL DOCTOR'S<br>GRAND TEST</h1>
-    <button id="startBtn">Start Exam</button>
-  </div>
+  <div class="wrap">
+    <div class="card" id="mainCard">
+      <div id="welcomeScreen">
+        <h1>WELCOME TO CHILL DOCTOR'S<br>GRAND TEST</h1>
+        <p class="center muted">6 sets — 50 questions each — complete sets sequentially. After finishing sets 1–3 you'll see answers + explanations for those sets. After finishing 4–6 you will see the remaining explanations and the grand result.</p>
+        <div class="center" style="margin-top:18px">
+          <button id="beginBtn">Start Exam</button>
+        </div>
+      </div>
 
-  <div class="container" id="quiz" style="display:none;">
-    <h1>CHILL DOCTOR (GT)</h1>
-    <h3 id="question">Loading question...</h3>
-    <div id="options"></div>
-    <button id="nextBtn">Next</button>
-  </div>
+      <div id="examScreen" class="hidden">
+        <div class="top-row">
+          <div>
+            <h2 id="setTitle">Set 1</h2>
+            <div class="small" id="progressText">Question 1 / 50</div>
+          </div>
+          <div class="flex">
+            <div class="small">Set: </div>
+            <div class="sets" id="setsContainer" style="margin-left:8px"></div>
+          </div>
+        </div>
 
-  <div class="container" id="result" style="display:none;">
-    <h2>Quiz Finished!</h2>
-    <p id="score"></p>
-    <button onclick="restartQuiz()">Restart</button>
-  </div>
+        <div id="questionCard" style="padding:12px;border-radius:10px;border:1px solid #f0f0f0;background:#fff">
+          <div class="small muted" id="qTimer" style="float:right">Timer: —</div>
+          <h3 id="questionText">Question text</h3>
+          <div class="options" id="optionsList"></div>
+          <div class="controls">
+            <div>
+              <button id="prevBtn" class="ghost">← Previous</button>
+            </div>
+            <div class="flex">
+              <div class="small" id="scoreText">Score: 0</div>
+              <button id="submitSetBtn" style="margin-left:12px">Submit Set</button>
+              <button id="nextBtn" style="margin-left:8px">Next →</button>
+            </div>
+          </div>
+          <div id="explainBox" class="explain hidden"></div>
+        </div>
 
-  <script>
-    const quizData = [
-      {
-        question: "A 45-year-old man with long-standing hypertension develops sudden left-sided weakness and slurred speech. CT head shows right internal capsule bleed. Which artery is most likely involved?",
-        options: ["Middle cerebral artery", "Anterior cerebral artery", "Lenticulostriate artery", "Posterior communicating artery"],
-        answer: 2
-      },
-      {
-        question: "Which vitamin deficiency causes megaloblastic anemia?",
-        options: ["Vitamin B12", "Vitamin C", "Vitamin K", "Vitamin D"],
-        answer: 0
-      },
-      {
-        question: "Which is the drug of choice for anaphylaxis?",
-        options: ["Adrenaline", "Hydrocortisone", "Avil", "Dexa"],
-        answer: 0
-      },
-      {
-        question: "What is the normal range of serum sodium?",
-        options: ["120–130 mEq/L", "135–145 mEq/L", "150–160 mEq/L", "110–120 mEq/L"],
-        answer: 1
-      }
-    ];
+        <div class="footer">
+          <div class="small">You can go back within the set. Once a set is submitted it will be locked and you cannot return to it.</div>
+        </div>
+      </div>
 
-    let currentQuestion = 0;
-    let score = 0;
-
-    const welcomeScreen = document.getElementById("welcome");
-    const quizScreen = document.getElementById("quiz");
-    const resultScreen = document.getElementById("result");
-    const questionEl = document.getElementById("question");
-    const optionsEl = document.getElementById("options");
-    const nextBtn = document.getElementById("nextBtn");
-    const scoreEl = document.getElementById("score");
-    const startBtn = document.getElementById("startBtn");
-
-    startBtn.onclick = () => {
-      welcomeScreen.style.display = "none";
-      quizScreen.style.display = "block";
-      loadQuestion();
-    };
-
-    function loadQuestion() {
-      const q = quizData[currentQuestion];
-      questionEl.textContent = q.question;
-      optionsEl.innerHTML = "";
-      q.options.forEach((option, index) => {
-        const div = document.createElement("div");
-        div.textContent = option;
-        div.classList.add("option");
-        div.onclick = () => selectOption(index);
-        optionsEl.appendChild(div);
-      });
-    }
-
-    function selectOption(index) {
-      const q = quizData[currentQuestion];
-      const options = document.querySelectorAll(".option");
-      options.forEach((opt, i) => {
-        opt.onclick = null;
-        if (i === q.answer) opt.classList.add("correct");
-        else if (i === index) opt.classList.add("wrong");
-      });
-      if (index === q.answer) score++;
-    }
-
-    nextBtn.onclick = () => {
-      currentQuestion++;
-      if (currentQuestion < quizData.length) loadQuestion();
-      else showResult();
-    };
-
-    function showResult() {
-      quizScreen.style.display = "none";
-      resultScreen.style.display = "block";
-      scoreEl.textContent = `Your Score: ${score} / ${quizData.length}`;
-    }
-
-    function restartQuiz() {
-      currentQuestion = 0;
-      score = 0;
-      resultScreen.style.display = "none";
-      quizScreen.style.display = "block";
-      loadQuestion();
-    }
-  </script>
-</body>
-</html>      cursor: pointer;
-      display: block;
-      margin: 20px auto 0;
-    }
-    button:hover {
-      background: #333;
-    }
-    .option {
-      background: #f5f5f5;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 5px 0;
-      cursor: pointer;
-      border: 1px solid transparent;
-    }
-    .option.correct {
-      background-color: #c8f7c5;
-      border-color: #2ecc71;
-    }
-    .option.wrong {
-      background-color: #f7c5c5;
-      border-color: #e74c3c;
-    }
-    #result {
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <div class="quiz-container">
-    <h1>CHILL DOCTOR (GT)</h1>
-    <div id="quiz">
-      <h3 id="question">Loading question...</h3>
-      <div id="options"></div>
-      <button id="nextBtn">Next</button>
-    </div>
-    <div id="result" style="display:none;">
-      <h2>Quiz Finished!</h2>
-      <p id="score"></p>
-      <button onclick="restartQuiz()">Restart</button>
+      <div id="finishedScreen" class="hidden">
+        <h2>All sets complete</h2>
+        <p id="grandResult" class="center"></p>
+        <div class="center"><button id="restartAllBtn">Restart Full Exam</button></div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const quizData = [
-      {
-        question: "A 45-year-old man with long-standing hypertension develops sudden left-sided weakness and slurred speech. CT head shows right internal capsule bleed. Which artery is most likely involved?",
-        options: ["Middle cerebral artery", "Anterior cerebral artery", "Lenticulostriate artery", "Posterior communicating artery"],
-        answer: 2
-      },
-      {
-        question: "Which vitamin deficiency causes megaloblastic anemia?",
-        options: ["Vitamin B12", "Vitamin C", "Vitamin K", "Vitamin D"],
-        answer: 0
-      },
-      {
-        question: "Which is the drug of choice for anaphylaxis?",
-        options: ["Adrenaline", "Hydrocortisone", "Avil", "Dexa"],
-        answer: 0
-      },
-      {
-        question: "What is the normal range of serum sodium?",
-        options: ["120–130 mEq/L", "135–145 mEq/L", "150–160 mEq/L", "110–120 mEq/L"],
-        answer: 1
+  <!-- Modal for explanations -->
+  <div id="explainModal" class="hidden">
+    <div class="modal-backdrop" id="modalBackdrop" style="display:none">
+      <div class="modal">
+        <h3>Answers & Explanations</h3>
+        <div id="explainContent"></div>
+        <div style="text-align:right;margin-top:12px"><button id="closeModalBtn">Close</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/*
+  App logic:
+  - data structure: sets -> array of question objects {q, opts[], a (index), explanation}
+  - behavior:
+    * user chooses set sequentially (only next unlocked sets allowed)
+    * inside set user can go back to previous questions
+    * submitSet locks the set; cannot go back to it
+    * after completing sets 1-3, reveal explanations for sets 1-3
+    * after completing sets 4-6, reveal explanations for sets 4-6 and grand total
+*/
+
+const TOTAL_SETS = 6;
+const QUESTIONS_PER_SET = 50;
+
+// ---------------------------
+// QUESTIONS DATA
+// For brevity: first 12 are filled with real questions + deep explanations.
+// The rest are placeholders that you can replace easily.
+// ---------------------------
+
+const sets = {};
+
+// helper to create placeholder question
+function placeholderQuestion(setNum, idx){
+  return {
+    q: `Placeholder question S${setNum}Q${idx+1} - replace with real question.`,
+    opts: ["Option A","Option B","Option C","Option D"],
+    a: 0,
+    explanation: `Placeholder explanation for question S${setNum}Q${idx+1}. Replace with a deep explanation describing why the correct answer is correct, mechanism, clinical clues, and differential diagnoses where applicable.`
+  };
+}
+
+// Populate sets with placeholders
+for(let s=1;s<=TOTAL_SETS;s++){
+  sets['Set '+s] = [];
+  for(let i=0;i<QUESTIONS_PER_SET;i++){
+    sets['Set '+s].push( placeholderQuestion(s,i) );
+  }
+}
+
+// ---------------------------
+// Replace some placeholders with real sample questions (first 12) + deep explanations
+// ---------------------------
+
+// Set 1: Q1 example
+sets['Set 1'][0] = {
+  q: "A 45-year-old man with long-standing hypertension develops sudden left-sided weakness and slurred speech. CT head shows right internal capsule bleed. Which artery is most likely involved?",
+  opts: ["Middle cerebral artery","Anterior cerebral artery","Lenticulostriate artery","Posterior communicating artery"],
+  a: 2,
+  explanation: `Deep explanation:
+The internal capsule's posterior limb receives small penetrating branches called the lenticulostriate arteries (branches of the MCA). These small vessels are vulnerable to long-standing hypertension causing lipohyalinosis and Charcot-Bouchard microaneurysms, which commonly produce lacunar or deep intracerebral hemorrhages. A bleed in the internal capsule typically causes contralateral pure motor weakness (face/arm/leg) because the corticospinal fibers run there. Middle cerebral artery cortical infarcts cause cortical signs (aphasia, gaze preference, hemisensory loss) which are less typical here. Posterior communicating artery pathology causes cranial nerve III palsy features. Therefore the lenticulostriate artery is the most likely.`
+};
+
+// Set 1: Q2
+sets['Set 1'][1] = {
+  q: "Which vitamin deficiency causes megaloblastic anemia?",
+  opts: ["Vitamin B12","Vitamin C","Vitamin K","Vitamin D"],
+  a: 0,
+  explanation: `Deep explanation:
+Megaloblastic anemia results from impaired DNA synthesis, leading to large RBC precursors (megaloblasts) and macrocytic anemia. Two main causes: Vitamin B12 (cobalamin) and folate deficiency. Vitamin B12 deficiency also causes neurologic symptoms (subacute combined degeneration — dorsal columns and corticospinal tracts) due to impaired myelin formation. Folate deficiency produces megaloblastic anemia without the long-term neurologic defects. Vitamin C deficiency causes scurvy (bleeding), Vitamin K deficiency causes bleeding and prolonged clotting times, and Vitamin D deficiency causes bone problems.`
+};
+
+// Set 1: Q3
+sets['Set 1'][2] = {
+  q: "Which is the drug of choice for anaphylaxis?",
+  opts: ["Adrenaline (epinephrine)","Hydrocortisone","Chlorpheniramine (Avil)","Dexamethasone"],
+  a: 0,
+  explanation: `Deep explanation:
+Adrenaline (epinephrine) is the immediate life-saving treatment in anaphylaxis; it acts on alpha-1 (vasoconstriction → raises BP, reduces mucosal edema), beta-1 (increases cardiac output) and beta-2 (bronchodilation, reduces mediator release from mast cells). Antihistamines and steroids are adjunctive but are not first-line for reversing airway edema, hypotension, and bronchospasm. IV fluids, oxygen, and airway support are also critical. Delay in epinephrine is associated with worse outcomes.`
+};
+
+// Set 1: Q4
+sets['Set 1'][3] = {
+  q: "A 10-month-old with wheeze: which inhaler is commonly used for acute bronchiolitis/wheezing episodes?",
+  opts: ["Salbutamol (inhaled)","Ipratropium","Budesonide (inhaled steroid)","Oral Montelukast"],
+  a: 0,
+  explanation: `Deep explanation:
+In many acute wheeze scenarios, especially bronchiolitis in young infants, the evidence for bronchodilators is mixed; however salbutamol (a short-acting beta-2 agonist) is commonly trialed for bronchodilation. Ipratropium has limited role in infants, inhaled steroids are for chronic control in asthma and not acute rescue, and montelukast is oral and used as controller/adjunct but not immediate rescue. Always follow local pediatric guidelines — for infants with bronchiolitis, supportive care (oxygen, fluids) is primary.`
+};
+
+// Set 1: Q5
+sets['Set 1'][4] = {
+  q: "Best initial IV fluid for most adult hypovolemia resuscitation?",
+  opts: ["0.9% Normal saline","Dextrose 5%","Half-normal saline (0.45%)","Ringer's lactate"],
+  a: 3,
+  explanation: `Deep explanation:
+Crystalloid fluids are first-line for most hypovolemic resuscitation. Ringer's lactate (balanced crystalloid) is often preferred to normal saline (0.9% NaCl) in many settings because large volumes of normal saline can cause hyperchloremic metabolic acidosis; lactated Ringer's has electrolyte composition closer to plasma. Dextrose 5% is not a resuscitation fluid (provides free water and glucose), and half-normal saline is hypotonic and not recommended for initial resuscitation. However availability and local protocols vary; in some settings 0.9% NS is used widely.`
+};
+
+// Set 1: Q6
+sets['Set 1'][5] = {
+  q: "Which lab value defines hyponatremia?",
+  opts: ["Serum sodium < 145 mEq/L","Serum sodium < 135 mEq/L","Serum sodium < 120 mEq/L","Serum sodium < 150 mEq/L"],
+  a: 1,
+  explanation: `Deep explanation:
+Normal serum sodium is roughly 135–145 mEq/L. Hyponatremia is defined as serum sodium <135 mEq/L. Severity and clinical features depend on rapidity of onset and absolute level (neurologic symptoms more likely at lower levels or with rapid falls). Management depends on cause and acuity; severe acute hyponatremia with neurologic symptoms may require hypertonic saline under careful monitoring.`
+};
+
+// Set 2: Q1
+sets['Set 2'][0] = {
+  q: "Which antibiotic is a first-line therapy for uncomplicated community-acquired pneumonia in adults (typical coverage)?",
+  opts: ["Amoxicillin","Ciprofloxacin","Vancomycin","Metronidazole"],
+  a: 0,
+  explanation: `Deep explanation:
+For many regions, amoxicillin (or amoxicillin-clavulanate depending on local guidelines) is a reasonable first-line agent for typical community-acquired pneumonia, targeting common organisms like Streptococcus pneumoniae. Macrolides are alternatives especially for atypical coverage; local resistance patterns matter. Fluoroquinolones are used selectively due to adverse effect profile. Vancomycin is for MRSA coverage; metronidazole covers anaerobes.`
+};
+
+// Set 2: Q2
+sets['Set 2'][1] = {
+  q: "Drug of choice for status epilepticus (initial IV medication)?",
+  opts: ["Phenytoin IV","Diazepam (lorazepam if available) IV","Valproate IV","Carbamazepine IV"],
+  a: 1,
+  explanation: `Deep explanation:
+Initial management of status epilepticus should start with benzodiazepines (IV lorazepam or diazepam) to rapidly terminate seizures. If seizures persist, second-line agents like phenytoin/fosphenytoin or valproate or levetiracetam are used. Rapid control is essential to prevent neuronal injury.`
+};
+
+// Set 2: Q3
+sets['Set 2'][2] = {
+  q: "Classic ECG change of hyperkalemia?",
+  opts: ["Tall peaked T waves","U waves","Prolonged PR interval then ST depression","Deep Q waves"],
+  a: 0,
+  explanation: `Deep explanation:
+Early ECG changes of hyperkalemia include tall, peaked (hyperacute) T waves, especially in precordial leads. As potassium increases, P waves flatten, PR prolongation occurs, QRS widens, and eventually sine-wave pattern and ventricular arrhythmias can develop. U waves are classically associated with hypokalemia.`
+};
+
+// Set 2: Q4
+sets['Set 2'][3] = {
+  q: "Which organism is commonly associated with urinary tract infections in community settings?",
+  opts: ["Escherichia coli","Streptococcus pyogenes","Pseudomonas aeruginosa","Clostridioides difficile"],
+  a: 0,
+  explanation: `Deep explanation:
+E. coli is the most common cause of uncomplicated community-acquired urinary tract infections due to its ability to colonize the periurethral area and ascend. Pseudomonas is more common in complicated UTIs and hospital settings; S. pyogenes causes pharyngitis/skin infections; C. difficile causes antibiotic-associated colitis.`
+};
+
+// Set 3: Q1
+sets['Set 3'][0] = {
+  q: "In an adult with bacterial meningitis, which antibiotic should be given empirically (depending on age/clinical factors)?",
+  opts: ["Third-generation cephalosporin (e.g., ceftriaxone) ± vancomycin","Amoxicillin alone","Metronidazole","Acyclovir"],
+  a: 0,
+  explanation: `Deep explanation:
+Empiric therapy for suspected bacterial meningitis typically includes a third-generation cephalosporin (ceftriaxone or cefotaxime) plus vancomycin to cover resistant Streptococcus pneumoniae; ampicillin is added for Listeria coverage in certain populations (elderly, immunocompromised). Metronidazole is for anaerobic infections; acyclovir is for viral (HSV) encephalitis. Immediate parenteral antibiotics are critical; do not delay for imaging if meningitis is strongly suspected.`
+};
+
+// Set 3: Q2
+sets['Set 3'][1] = {
+  q: "Best initial imaging for suspected acute appendicitis in an adult?",
+  opts: ["Ultrasound","CT abdomen with contrast","X-ray abdomen","MRI abdomen"],
+  a: 1,
+  explanation: `Deep explanation:
+CT abdomen with contrast is highly sensitive and specific for diagnosing acute appendicitis in adults and is commonly used in emergency settings. Ultrasound is useful especially in children and pregnant patients (avoids radiation) but operator-dependent. MRI can be used in pregnancy or cases where CT is contraindicated. Plain X-ray is not diagnostic.`
+};
+
+// Set 3: Q3
+sets['Set 3'][2] = {
+  q: "Antidote for paracetamol (acetaminophen) poisoning?",
+  opts: ["N-acetylcysteine (NAC)","Activated charcoal only","Atropine","Naloxone"],
+  a: 0,
+  explanation: `Deep explanation:
+N-acetylcysteine (NAC) replenishes hepatic glutathione and prevents accumulation of the toxic metabolite NAPQI in acetaminophen overdose; it is effective when given within an appropriate time window (but can benefit later in specific cases). Activated charcoal may reduce absorption if given early. Naloxone is for opioid overdose; atropine for anticholinergic bradycardia.`
+};
+
+// Set 4,5,6 keep placeholders (already populated above)
+// You can replace any of the placeholder objects with real q/opts/a/explanation
+
+// ---------------------------
+// App state
+// ---------------------------
+const setNames = Object.keys(sets); // "Set 1"... "Set 6"
+let currentSetIdx = 0; // 0..5
+let currentQIdx = 0; // 0..49 within a set
+let scoreBySet = Array(TOTAL_SETS).fill(0);
+let answeredBySet = Array(TOTAL_SETS).fill(null).map(()=>Array(QUESTIONS_PER_SET).fill(null)); // store chosen index or null
+let lockedSets = Array(TOTAL_SETS).fill(false);
+
+// UI refs
+const beginBtn = document.getElementById('beginBtn');
+const welcomeScreen = document.getElementById('welcomeScreen');
+const examScreen = document.getElementById('examScreen');
+const finishedScreen = document.getElementById('finishedScreen');
+const setTitle = document.getElementById('setTitle');
+const progressText = document.getElementById('progressText');
+const optionsList = document.getElementById('optionsList');
+const questionText = document.getElementById('questionText');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const submitSetBtn = document.getElementById('submitSetBtn');
+const setsContainer = document.getElementById('setsContainer');
+const scoreText = document.getElementById('scoreText');
+const explainBox = document.getElementById('explainBox');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const explainContent = document.getElementById('explainContent');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const restartAllBtn = document.getElementById('restartAllBtn');
+const grandResult = document.getElementById('grandResult');
+
+// Populate set buttons UI
+function renderSetButtons(){
+  setsContainer.innerHTML = '';
+  setNames.forEach((sName, idx)=>{
+    const b = document.createElement('button');
+    b.className = 'set-btn';
+    b.textContent = sName;
+    if(lockedSets[idx]) b.classList.add('locked');
+    b.onclick = ()=> {
+      if(idx !== currentSetIdx){
+        // only allow jumping to an unlocked set that is <= next uncompleted set
+        // allow switching only within unlocked sets and not skipped forward beyond first locked
+        if(lockedSets[idx]) return;
+        if(idx > currentSetIdx){ // don't allow skipping forward beyond current set
+          alert('You must complete previous sets first.');
+          return;
+        }
       }
-    ];
-
-    let currentQuestion = 0;
-    let score = 0;
-
-    const questionEl = document.getElementById("question");
-    const optionsEl = document.getElementById("options");
-    const nextBtn = document.getElementById("nextBtn");
-    const resultEl = document.getElementById("result");
-    const scoreEl = document.getElementById("score");
-
-    function loadQuestion() {
-      const q = quizData[currentQuestion];
-      questionEl.textContent = q.question;
-      optionsEl.innerHTML = "";
-      q.options.forEach((option, index) => {
-        const div = document.createElement("div");
-        div.textContent = option;
-        div.classList.add("option");
-        div.onclick = () => selectOption(index);
-        optionsEl.appendChild(div);
-      });
-    }
-
-    function selectOption(index) {
-      const q = quizData[currentQuestion];
-      const options = document.querySelectorAll(".option");
-      options.forEach((opt, i) => {
-        opt.onclick = null;
-        if (i === q.answer) opt.classList.add("correct");
-        else if (i === index) opt.classList.add("wrong");
-      });
-      if (index === q.answer) score++;
-    }
-
-    nextBtn.onclick = () => {
-      currentQuestion++;
-      if (currentQuestion < quizData.length) loadQuestion();
-      else showResult();
+      currentSetIdx = idx;
+      currentQIdx = 0;
+      renderQuestion();
     };
+    setsContainer.appendChild(b);
+  });
+}
 
-    function showResult() {
-      document.getElementById("quiz").style.display = "none";
-      resultEl.style.display = "block";
-      scoreEl.textContent = `Your Score: ${score} / ${quizData.length}`;
+// render question
+function renderQuestion(){
+  const sName = setNames[currentSetIdx];
+  setTitle.textContent = sName;
+  const qArr = sets[sName];
+  const qObj = qArr[currentQIdx];
+  progressText.textContent = `Question ${currentQIdx+1} / ${qArr.length}`;
+  questionText.textContent = qObj.q;
+  optionsList.innerHTML = '';
+  explainBox.classList.add('hidden');
+  qObj.opts.forEach((opt, i)=>{
+    const d = document.createElement('div');
+    d.className = 'option';
+    d.textContent = `${String.fromCharCode(65+i)}. ${opt}`;
+    // show selected if answered previously
+    const chosen = answeredBySet[currentSetIdx][currentQIdx];
+    if(chosen !== null){
+      if(chosen === i) d.classList.add('selected');
     }
+    d.onclick = ()=> {
+      // allow selection only if set not locked
+      if(lockedSets[currentSetIdx]) return;
+      answeredBySet[currentSetIdx][currentQIdx] = i;
+      // visual
+      Array.from(optionsList.children).forEach(c=>c.classList.remove('selected'));
+      d.classList.add('selected');
+      // update score preview (not final until submit)
+      updateScoreText();
+    };
+    optionsList.appendChild(d);
+  });
 
-    function restartQuiz() {
-      currentQuestion = 0;
-      score = 0;
-      resultEl.style.display = "none";
-      document.getElementById("quiz").style.display = "block";
-      loadQuestion();
-    }
+  // prev/next hide/show
+  prevBtn.disabled = currentQIdx === 0;
+  prevBtn.style.opacity = prevBtn.disabled ? 0.5 : 1;
+  updateScoreText();
+  renderSetButtons();
+}
 
-    loadQuestion();
-  </script>
-</body>
-</html>
+// update score text as provisional (counts correct among answered in current set)
+function updateScoreText(){
+  const qArr = sets[setNames[currentSetIdx]];
+  let
