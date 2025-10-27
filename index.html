@@ -365,4 +365,147 @@ function renderQuestion(){
 // update score text as provisional (counts correct among answered in current set)
 function updateScoreText(){
   const qArr = sets[setNames[currentSetIdx]];
-  let
+  let provisional = 0;
+  answeredBySet[currentSetIdx].forEach((ans, idx)=>{
+    if(ans !== null && qArr[idx].a === ans) provisional++;
+  });
+  scoreText.textContent = `Set provisional: ${provisional}`;
+}
+
+// navigation handlers
+prevBtn.onclick = ()=>{
+  if(currentQIdx > 0){ currentQIdx--; renderQuestion(); }
+};
+
+nextBtn.onclick = ()=>{
+  const qArr = sets[setNames[currentSetIdx]];
+  if(currentQIdx < qArr.length - 1){ currentQIdx++; renderQuestion(); }
+  else {
+    alert('This is the last question of the set. You can Submit Set to lock it.');
+  }
+};
+
+// Submit set: lock it and compute final score for the set
+submitSetBtn.onclick = ()=>{
+  if(lockedSets[currentSetIdx]) return;
+  // compute final
+  const qArr = sets[setNames[currentSetIdx]];
+  let setScore = 0;
+  for(let i=0;i<qArr.length;i++){
+    const chosen = answeredBySet[currentSetIdx][i];
+    if(chosen !== null && chosen === qArr[i].a) setScore++;
+  }
+  scoreBySet[currentSetIdx] = setScore;
+  lockedSets[currentSetIdx] = true;
+  alert(`Set submitted. Your score for ${setNames[currentSetIdx]}: ${setScore} / ${qArr.length}`);
+  // advance to next unlocked set if available
+  let nextIdx = currentSetIdx + 1;
+  while(nextIdx < TOTAL_SETS && lockedSets[nextIdx]) nextIdx++;
+  if(nextIdx < TOTAL_SETS){
+    currentSetIdx = nextIdx;
+    currentQIdx = 0;
+    renderQuestion();
+  } else {
+    // check if all sets completed
+    if(lockedSets.every(v=>v)){
+      showFinalResults();
+    } else {
+      // still some sets unlocked earlier? find first unlocked
+      const firstUnlocked = lockedSets.findIndex(v=>v===false);
+      if(firstUnlocked >=0){
+        currentSetIdx = firstUnlocked;
+        currentQIdx = 0;
+        renderQuestion();
+      }
+    }
+  }
+
+  // After finishing set 3 (index 2) reveal explanations for sets 1-3
+  if(lockedSets[0] && lockedSets[1] && lockedSets[2] && !window._revealedFirstThree){
+    window._revealedFirstThree = true;
+    showExplanationsForRange(0,2);
+  }
+
+  // After finishing sets 4-6 (indexes 3..5) reveal explanations for sets 4-6 and final
+  if(lockedSets[3] && lockedSets[4] && lockedSets[5] && !window._revealedLastThree){
+    window._revealedLastThree = true;
+    showExplanationsForRange(3,5);
+    showFinalResults(); // show totals too
+  }
+
+  renderSetButtons();
+};
+
+// show explanations for sets a..b (inclusive indices)
+function showExplanationsForRange(a,b){
+  explainContent.innerHTML = '';
+  for(let s=a; s<=b; s++){
+    const name = setNames[s];
+    const arr = sets[name];
+    const header = document.createElement('h4');
+    header.textContent = name;
+    explainContent.appendChild(header);
+    for(let i=0;i<arr.length;i++){
+      const q = arr[i];
+      const block = document.createElement('div');
+      block.className = 'ex-block';
+      const qh = document.createElement('div');
+      qh.innerHTML = `<strong>Q${i+1}.</strong> ${q.q}`;
+      const ans = document.createElement('div');
+      ans.innerHTML = `<em>Answer: ${String.fromCharCode(65+q.a)}. ${q.opts[q.a]}</em>`;
+      const ex = document.createElement('div');
+      ex.style.marginTop = '6px';
+      ex.innerHTML = `<div style="color:#333">${q.explanation ? q.explanation : '<span style="color:#999">No explanation provided.</span>'}</div>`;
+      block.appendChild(qh);
+      block.appendChild(ans);
+      block.appendChild(ex);
+      explainContent.appendChild(block);
+    }
+  }
+  modalBackdrop.style.display = 'flex';
+}
+
+// close modal
+closeModalBtn.onclick = ()=>{
+  modalBackdrop.style.display = 'none';
+};
+
+// show final grand results
+function showFinalResults(){
+  const grand = scoreBySet.reduce((a,b)=>a+(b||0),0);
+  finishedScreen.classList.remove('hidden');
+  examScreen.classList.add('hidden');
+  welcomeScreen.classList.add('hidden');
+  grandResult.textContent = `Grand total: ${grand} / ${QUESTIONS_PER_SET * TOTAL_SETS}`;
+}
+
+// restart all
+restartAllBtn.onclick = ()=>{
+  if(!confirm('Restart full exam? This will clear all answers.')) return;
+  currentSetIdx = 0; currentQIdx = 0;
+  scoreBySet = Array(TOTAL_SETS).fill(0);
+  answeredBySet = Array(TOTAL_SETS).fill(null).map(()=>Array(QUESTIONS_PER_SET).fill(null));
+  lockedSets = Array(TOTAL_SETS).fill(false);
+  window._revealedFirstThree = false; window._revealedLastThree = false;
+  finishedScreen.classList.add('hidden');
+  examScreen.classList.add('hidden');
+  welcomeScreen.classList.remove('hidden');
+  renderSetButtons();
+};
+
+// Begin
+beginBtn.onclick = ()=>{
+  welcomeScreen.style.display = 'none';
+  examScreen.classList.remove('hidden');
+  currentSetIdx = 0; currentQIdx = 0;
+  renderSetButtons();
+  renderQuestion();
+};
+
+// Initialize UI on load
+renderSetButtons();
+renderQuestion();
+
+</script>
+</body>
+</html>
