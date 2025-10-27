@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CHILL DOCTOR (GT) - FMGE Quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .quiz-container {
+      width: 90%;
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: block;
+      margin: 20px auto 0;
+    }
+    button:hover {
+      background: #333;
+    }
+    .option {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 5px 0;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .option.correct {
+      background-color: #c8f7c5;
+      border-color: #2ecc71;
+    }
+    .option.wrong {
+      background-color: #f7c5c5;
+      border-color: #e74c3c;
+    }
+    #result {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h1>CHILL DOCTOR (GT)</h1>
+    <div id="quiz">
+      <h3 id="question">Loading question...</h3>
+      <div id="options"></div>
+      <button id="nextBtn">Next</button>
+    </div>
+    <div id="result" style="display:none;">
+      <h2>Quiz Finished!</h2>
+      <p id="score"></p>
+      <button onclick="restartQuiz()">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+      {
+        question: "A 45-year-old man with long-standing hypertension develops sudden left-sided weakness and slurred speech. CT head shows right internal capsule bleed. Which artery is most likely involved?",
+        options: ["Middle cerebral artery", "Anterior cerebral artery", "Lenticulostriate artery", "Posterior communicating artery"],
+        answer: 2
+      },
+      {
+        question: "Which vitamin deficiency causes megaloblastic anemia?",
+        options: ["Vitamin B12", "Vitamin C", "Vitamin K", "Vitamin D"],
+        answer: 0
+      },
+      {
+        question: "Which is the drug of choice for anaphylaxis?",
+        options: ["Adrenaline", "Hydrocortisone", "Avil", "Dexa"],
+        answer: 0
+      },
+      {
+        question: "What is the normal range of serum sodium?",
+        options: ["120–130 mEq/L", "135–145 mEq/L", "150–160 mEq/L", "110–120 mEq/L"],
+        answer: 1
+      }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const nextBtn = document.getElementById("nextBtn");
+    const resultEl = document.getElementById("result");
+    const scoreEl = document.getElementById("score");
+
+    function loadQuestion() {
+      const q = quizData[currentQuestion];
+      questionEl.textContent = q.question;
+      optionsEl.innerHTML = "";
+      q.options.forEach((option, index) => {
+        const div = document.createElement("div");
+        div.textContent = option;
+        div.classList.add("option");
+        div.onclick = () => selectOption(index);
+        optionsEl.appendChild(div);
+      });
+    }
+
+    function selectOption(index) {
+      const q = quizData[currentQuestion];
+      const options = document.querySelectorAll(".option");
+      options.forEach((opt, i) => {
+        opt.onclick = null;
+        if (i === q.answer) opt.classList.add("correct");
+        else if (i === index) opt.classList.add("wrong");
+      });
+      if (index === q.answer) score++;
+    }
+
+    nextBtn.onclick = () => {
+      currentQuestion++;
+      if (currentQuestion < quizData.length) loadQuestion();
+      else showResult();
+    };
+
+    function showResult() {
+      document.getElementById("quiz").style.display = "none";
+      resultEl.style.display = "block";
+      scoreEl.textContent = `Your Score: ${score} / ${quizData.length}`;
+    }
+
+    function restartQuiz() {
+      currentQuestion = 0;
+      score = 0;
+      resultEl.style.display = "none";
+      document.getElementById("quiz").style.display = "block";
+      loadQuestion();
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
